@@ -116,6 +116,8 @@ const (
 	DefaultRulesEventBuffer         = 1
 	DefaultRuleEndpointsEventBuffer = 1
 
+	DefaultMissionsEventBuffer      = 1
+
 	// DeviceController
 	DefaultUpdateDeviceStatusBuffer  = 1024
 	DefaultDeviceEventBuffer         = 1
