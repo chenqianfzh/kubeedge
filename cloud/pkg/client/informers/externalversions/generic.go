@@ -22,8 +22,9 @@ import (
 	"fmt"
 
 	v1alpha2 "github.com/kubeedge/kubeedge/cloud/pkg/apis/devices/v1alpha2"
+	v1 "github.com/kubeedge/kubeedge/cloud/pkg/apis/missions/v1"
 	v1alpha1 "github.com/kubeedge/kubeedge/cloud/pkg/apis/reliablesyncs/v1alpha1"
-	v1 "github.com/kubeedge/kubeedge/cloud/pkg/apis/rules/v1"
+	rulesv1 "github.com/kubeedge/kubeedge/cloud/pkg/apis/rules/v1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -54,7 +55,11 @@ func (f *genericInformer) Lister() cache.GenericLister {
 // TODO extend this to unknown resources with a client pool
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
-	// Group=devices, Version=v1alpha2
+	// Group=arktosedge.kubeedge.io, Version=v1
+	case v1.SchemeGroupVersion.WithResource("missions"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Arktosedge().V1().Missions().Informer()}, nil
+
+		// Group=devices, Version=v1alpha2
 	case v1alpha2.SchemeGroupVersion.WithResource("devices"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Devices().V1alpha2().Devices().Informer()}, nil
 	case v1alpha2.SchemeGroupVersion.WithResource("devicemodels"):
@@ -67,9 +72,9 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Reliablesyncs().V1alpha1().ObjectSyncs().Informer()}, nil
 
 		// Group=rules.kubeedge.io, Version=v1
-	case v1.SchemeGroupVersion.WithResource("rules"):
+	case rulesv1.SchemeGroupVersion.WithResource("rules"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Rules().V1().Rules().Informer()}, nil
-	case v1.SchemeGroupVersion.WithResource("ruleendpoints"):
+	case rulesv1.SchemeGroupVersion.WithResource("ruleendpoints"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Rules().V1().RuleEndpoints().Informer()}, nil
 
 	}
