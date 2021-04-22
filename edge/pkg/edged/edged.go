@@ -115,6 +115,8 @@ import (
 	"github.com/kubeedge/kubeedge/edge/pkg/metamanager/client"
 	"github.com/kubeedge/kubeedge/pkg/apis/componentconfig/edgecore/v1alpha1"
 	"github.com/kubeedge/kubeedge/pkg/version"
+
+	missionsv1 "github.com/kubeedge/kubeedge/cloud/pkg/apis/missions/v1"
 )
 
 const (
@@ -218,6 +220,7 @@ type edged struct {
 	// cache for secret
 	secretStore    cache.Store
 	configMapStore cache.Store
+	missionStore   cache.Store
 	workQueue      queue.WorkQueue
 	clcm           clcm.ContainerLifecycleManager
 	// edged cgroup driver for container runtime
@@ -446,6 +449,7 @@ func newEdged(enable bool) (*edged, error) {
 		rootDirectory:             DefaultRootDir,
 		secretStore:               cache.NewStore(cache.MetaNamespaceKeyFunc),
 		configMapStore:            cache.NewStore(cache.MetaNamespaceKeyFunc),
+		missionStore:              cache.NewStore(cache.MetaNamespaceKeyFunc),
 		workQueue:                 queue.NewBasicWorkQueue(clock.RealClock{}),
 		nodeIP:                    net.ParseIP(edgedconfig.Config.NodeIP),
 		recorder:                  recorder,
@@ -1115,8 +1119,14 @@ func (e *edged) syncPod() {
 				resp := result.NewRespByMessage(&result, res)
 				beehiveContext.SendResp(*resp)
 			}
+		case constants.ResourceTypeMission:
+			klog.Infof("mission operation type: %s", op)
+			err := e.handleMission(op, content)
+			if err != nil {
+				klog.Errorf("handle mission failed: %v", err)
+			}
 		default:
-			klog.Errorf("resType is not pod or configmap or secret or volume: esType is %s", resType)
+			klog.Errorf("resType is not pod or configmap or secret or volume or mission: esType is %s", resType)
 			continue
 		}
 	}
@@ -1227,6 +1237,32 @@ func (e *edged) handlePod(op string, content []byte) (err error) {
 		}
 	}
 	return nil
+}
+
+func (e *edged) handleMission(op string, content []byte) (err error) {
+	var mission missionsv1.Mission
+	err = json.Unmarshal(content, &mission)
+	if err != nil {
+		return err
+	}
+
+	_, exists, _ := e.missionStore.Get(&mission)
+	switch op {
+	case model.InsertOperation:
+		err = e.missionStore.Add(&mission)
+	case model.UpdateOperation:
+		if exists {
+			err = e.missionStore.Update(&mission)
+		}
+	case model.DeleteOperation:
+		if exists {
+			err = e.missionStore.Delete(&mission)
+		}
+	}
+	if err == nil {
+		klog.Infof("%s mission [%s] for cache success.", op, mission.Name)
+	}
+	return
 }
 
 func (e *edged) handlePodListFromMetaManager(content []byte) (err error) {
