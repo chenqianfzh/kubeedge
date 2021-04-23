@@ -48,7 +48,13 @@ func (in *GenericPlacementFields) DeepCopyInto(out *GenericPlacementFields) {
 		*out = make([]GenericClusterReference, len(*in))
 		copy(*out, *in)
 	}
-	in.ClusterSelector.DeepCopyInto(&out.ClusterSelector)
+	if in.MatchLabels != nil {
+		in, out := &in.MatchLabels, &out.MatchLabels
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	return
 }
 
