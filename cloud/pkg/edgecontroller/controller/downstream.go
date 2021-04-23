@@ -585,7 +585,7 @@ func (dc *DownstreamController) syncMission() {
 				}
 				msg := model.NewMessage("")
 				msg.SetResourceVersion(mission.ResourceVersion)
-				resource, err := messagelayer.BuildResource(nodeName, metav1.NamespaceAll, model.ResourceTypeMission, mission.Name)
+				resource, err := messagelayer.BuildResource(nodeName, "fake_namespace", model.ResourceTypeMission, mission.Name)
 				if err != nil {
 					klog.Warningf("Built message resource failed with error: %v", err)
 					return true

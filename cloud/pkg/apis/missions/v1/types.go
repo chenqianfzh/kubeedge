@@ -49,7 +49,7 @@ type GenericClusterReference struct {
 
 type GenericPlacementFields struct {
 	Clusters        []GenericClusterReference `json:"clusters,omitempty"`
-	ClusterSelector metav1.LabelSelector      `json:"clusterSelector,omitempty"`
+	MatchLabels     map[string]string `yaml:"matchLabels,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

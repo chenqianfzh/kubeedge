@@ -484,9 +484,12 @@ type EdgeCluster struct {
 	// clusterKubeconfig indicates the path to the edge cluster kubeconfig file
 	ClusterKubeconfig string `json:"clusterKubeconfig,omitempty"`
 
+	// Distribution of the cluster, supported value: arkots, to support in the furture: k3s, 
+	KubeDistribution string `json:"kubeDistribution,omitempty"`
+
 	// Name of the edge cluster
 	ClusterName string `json:"clusterName,omitempty"`
-
+	
 	// labels of the cluster
 	ClusterLabels map[string]string `json:"clusterLabels,omitempty"`
 }

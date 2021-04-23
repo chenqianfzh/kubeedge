@@ -105,6 +105,7 @@ import (
 	"github.com/kubeedge/kubeedge/edge/pkg/edged/clcm"
 	edgedconfig "github.com/kubeedge/kubeedge/edge/pkg/edged/config"
 	fakekube "github.com/kubeedge/kubeedge/edge/pkg/edged/fake"
+	missionmanager "github.com/kubeedge/kubeedge/edge/pkg/edged/missionmanager"
 	"github.com/kubeedge/kubeedge/edge/pkg/edged/podmanager"
 	"github.com/kubeedge/kubeedge/edge/pkg/edged/server"
 	"github.com/kubeedge/kubeedge/edge/pkg/edged/status"
@@ -220,7 +221,7 @@ type edged struct {
 	// cache for secret
 	secretStore    cache.Store
 	configMapStore cache.Store
-	missionStore   cache.Store
+	missionManager *missionmanager.Manager
 	workQueue      queue.WorkQueue
 	clcm           clcm.ContainerLifecycleManager
 	// edged cgroup driver for container runtime
@@ -427,6 +428,13 @@ func newEdged(enable bool) (*edged, error) {
 
 	metaClient := client.New()
 
+	missionManager, err := missionmanager.NewMissionManager(edgedconfig.Config.EdgeCluster)
+	if err != nil {
+		klog.Infof("Error in initializing edge cluster: %v, moving on", err)
+	} else {
+		klog.Infof("Successfully initialized mission manager, edge cluster config: %#v ", edgedconfig.Config.EdgeCluster)
+	}
+
 	ed := &edged{
 		nodeName:                  edgedconfig.Config.HostnameOverride,
 		namespace:                 edgedconfig.Config.RegisterNodeNamespace,
@@ -449,14 +457,14 @@ func newEdged(enable bool) (*edged, error) {
 		rootDirectory:             DefaultRootDir,
 		secretStore:               cache.NewStore(cache.MetaNamespaceKeyFunc),
 		configMapStore:            cache.NewStore(cache.MetaNamespaceKeyFunc),
-		missionStore:              cache.NewStore(cache.MetaNamespaceKeyFunc),
+		missionManager:            missionManager,
 		workQueue:                 queue.NewBasicWorkQueue(clock.RealClock{}),
 		nodeIP:                    net.ParseIP(edgedconfig.Config.NodeIP),
 		recorder:                  recorder,
 		enable:                    enable,
 	}
 	ed.runtimeClassManager = runtimeclass.NewManager(ed.kubeClient)
-	err := ed.makePodDir()
+	err = ed.makePodDir()
 	if err != nil {
 		klog.Errorf("create pod dir [%s] failed: %v", ed.getPodsDir(), err)
 		os.Exit(1)
@@ -1226,7 +1234,7 @@ func (e *edged) handlePod(op string, content []byte) (err error) {
 		return err
 	}
 
-	switch op {
+	switch op {V()
 	case model.InsertOperation:
 		e.addPod(&pod)
 	case model.UpdateOperation:
@@ -1246,18 +1254,13 @@ func (e *edged) handleMission(op string, content []byte) (err error) {
 		return err
 	}
 
-	_, exists, _ := e.missionStore.Get(&mission)
 	switch op {
 	case model.InsertOperation:
-		err = e.missionStore.Add(&mission)
+		err = e.missionManager.ApplyMission(&mission)		
 	case model.UpdateOperation:
-		if exists {
-			err = e.missionStore.Update(&mission)
-		}
+		err = e.missionManager.ApplyMission(&mission)
 	case model.DeleteOperation:
-		if exists {
-			err = e.missionStore.Delete(&mission)
-		}
+		err = e.missionManager.DeleteMission(&mission)
 	}
 	if err == nil {
 		klog.Infof("%s mission [%s] for cache success.", op, mission.Name)
