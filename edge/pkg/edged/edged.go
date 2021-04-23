@@ -1234,7 +1234,7 @@ func (e *edged) handlePod(op string, content []byte) (err error) {
 		return err
 	}
 
-	switch op {V()
+	switch op {
 	case model.InsertOperation:
 		e.addPod(&pod)
 	case model.UpdateOperation:
