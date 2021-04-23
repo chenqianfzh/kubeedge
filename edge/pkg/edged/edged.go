@@ -1248,6 +1248,10 @@ func (e *edged) handlePod(op string, content []byte) (err error) {
 }
 
 func (e *edged) handleMission(op string, content []byte) (err error) {
+	if e.missionManager == nil {
+		return fmt.Errorf("mission manager is not initialized.")
+	}
+
 	var mission missionsv1.Mission
 	err = json.Unmarshal(content, &mission)
 	if err != nil {

@@ -32,11 +32,11 @@ var distributionToKubectl = map[string]string {
 	  }
 
 type Manager struct {
-	clusterName string 
-	clusterLabels map[string]string
-	kubedistrubtion string
-	kubeconfigFile string
-	kubectlCli string
+	ClusterName string 
+	ClusterLabels map[string]string
+	Kubedistrubtion string
+	KubeconfigFile string
+	KubectlCli string
 }
 
 //NewMissionManager creates new mission manager object
@@ -58,11 +58,11 @@ func NewMissionManager(edgeClusterConfig *v1alpha1.EdgeCluster) (*Manager, error
 	}
 
 	return &Manager {
-		clusterName: edgeClusterConfig.ClusterName,
-		clusterLabels: edgeClusterConfig.ClusterLabels,
-		kubedistrubtion: edgeClusterConfig.KubeDistribution,
-		kubeconfigFile: edgeClusterConfig.ClusterKubeconfig,
-		kubectlCli: distributionToKubectl[edgeClusterConfig.KubeDistribution],
+		ClusterName: edgeClusterConfig.ClusterName,
+		ClusterLabels: edgeClusterConfig.ClusterLabels,
+		Kubedistrubtion: edgeClusterConfig.KubeDistribution,
+		KubeconfigFile: edgeClusterConfig.ClusterKubeconfig,
+		KubectlCli: distributionToKubectl[edgeClusterConfig.KubeDistribution],
 	}, nil	
 }
 
@@ -71,9 +71,9 @@ func (m *Manager) ApplyMission(mission *missionv1.Mission) error {
 		return nil
 	}
 
-	klog.V(4).Infof("Apply mission %#v", *mission)
+	klog.V(4).Infof("Apply mission %#v", *mission)	
 
-	deploy_mission_cmd := fmt.Sprintf("printf \"%s\" | %s apply %s -f - ", mission.Spec.Content, m.kubectlCli, m.kubeconfigFile)
+	deploy_mission_cmd := fmt.Sprintf("printf \"%s\" | %s apply --kubeconfig=%s -f - ", mission.Spec.Content, m.KubectlCli, m.KubeconfigFile)
 	exitcode, output, err := ExecCommandLine(deploy_mission_cmd, COMMAND_TIMEOUT_SEC)
 	if exitcode != 0 || err != nil {
 		return fmt.Errorf("Command (%s) failed: exit code: v, output: %v, err: %v", exitcode, output, err)
@@ -90,7 +90,7 @@ func (m *Manager) DeleteMission(mission *missionv1.Mission) error {
 
 	klog.V(4).Infof("Delete mission %#v", *mission)
 
-	deploy_mission_cmd := fmt.Sprintf("printf \"%s\" | %s delete %s -f - ", mission.Spec.Content, m.kubectlCli, m.kubeconfigFile)
+	deploy_mission_cmd := fmt.Sprintf("printf \"%s\" | %s delete --kubeconfig=%s -f - ", mission.Spec.Content, m.KubectlCli, m.KubeconfigFile)
 	exitcode, output, err := ExecCommandLine(deploy_mission_cmd, COMMAND_TIMEOUT_SEC)
 	if exitcode != 0 || err != nil {
 		return fmt.Errorf("Command (%s) failed: exit code: v, output: %v, err: %v", exitcode, output, err)
@@ -106,7 +106,7 @@ func (m *Manager) isMatchingMission(mission *missionv1.Mission) bool {
 	}
 
 	for _, matchingCluster := range mission.Spec.Placement.Clusters {
-		if m.clusterName == matchingCluster.Name {
+		if m.ClusterName == matchingCluster.Name {
 			return true
 		}
 	}
@@ -117,7 +117,7 @@ func (m *Manager) isMatchingMission(mission *missionv1.Mission) bool {
 	}
 
 	for k, v := range mission.Spec.Placement.MatchLabels {
-		if val, ok := m.clusterLabels[k]; ok && val == v {
+		if val, ok := m.ClusterLabels[k]; ok && val == v {
 			return true
 		}
 	}
